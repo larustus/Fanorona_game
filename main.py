@@ -69,7 +69,11 @@ class Board:
                 print('    | |  /  |  \  |  /  |  \  |  /  |  \  |  /  |  \  | ')
             c += 1
 
-    def get_pieces_that_can_move(self):
+#     print('    | |  \  |  /  |  \  |  /  |  \  |  /  |  \  |  /  | ')
+# else:
+#     print('    | |  /  |  \  |  /  |  \  |  /  |  \  |  /  |  \  | ')
+
+    def get_pieces_that_have_free_space_around(self):
         pieces_that_can_move = {}
         for i in self.pieces:
             if self.turn == i.color or i.color == 'g':
@@ -102,16 +106,17 @@ class Board:
                         if self.board[i.position[0] + 1][i.position[1] + 1].color == ' ':
                             pieces_that_can_move[i].append(self.board[i.position[0] + 1][i.position[1] + 1])
 
-        real = {}
+        #TODO check why this piece of code
+        final_pieces_that_can_move = {}
         for k in pieces_that_can_move:
             if len(pieces_that_can_move[k]) != 0:
-                real[k] = pieces_that_can_move[k]
-        return real
+                final_pieces_that_can_move[k] = pieces_that_can_move[k]
+        return final_pieces_that_can_move
 
-    # dostajemy slownik zetonow ktore maja wokol siebie wolne miejsca - wartosci slownika
+    # dostajemy slownik zetonow ktore maja wokol siebie wolne miejsca - wolne miejsca danego pola jako wartosci slownika
     # teraz trzeba sprawdzic ktore z nich maja bicie - te ktore nie maja wyjebac, jesli zaden nie ma to dowolny ruch
 
-    def check_if_pieces_that_can_move_can_attack(self, pieces_that_can_move):
+    def check_if_pieces_that_can_move_can_attack(self, final_pieces_that_can_move):
         # current turn color and enemy_color
         current_color = self.turn
         if current_color == 1:
@@ -122,9 +127,9 @@ class Board:
         # sprawdzam ktore maja bicie
         pieces_after_validation = {}
         # i = zeton z ruchami ; j = miejsce do ktorego moze isc
-        for i in pieces_that_can_move:
+        for i in final_pieces_that_can_move:
             pieces_after_validation[i] = []
-            for j in pieces_that_can_move[i]:
+            for j in final_pieces_that_can_move[i]:
                 chosen_piece_position = i.position
                 goal_position = j.position
 
@@ -234,19 +239,20 @@ class Board:
                             if self.board[goal_position[0] - 2][goal_position[1] - 2].color == enemy_color:
                                 pieces_after_validation[i].append(j)
                                 self.board[i.position[0]][i.position[1]].color = 'z'
-        real = {}
+        final_pieces_that_can_attack = {}
         for k in pieces_after_validation:
             if len(pieces_after_validation[k]) != 0:
-                real[k] = pieces_after_validation[k]
+                final_pieces_that_can_attack[k] = pieces_after_validation[k]
 
         # jesli nie ma bicia
-        if len(real) == 0:
-            for i in pieces_that_can_move:
+        if len(final_pieces_that_can_attack) == 0:
+            for i in final_pieces_that_can_move:
                 i.color = 'z'
-            return pieces_that_can_move
+            return final_pieces_that_can_move
         else:
-            return real
+            return final_pieces_that_can_attack
 
+    # a piece was chosen and now we display possible moves
     def get_possible_moves_for_piece(self, piece, pieces_that_can_move):
         # current turn color and enemy_color
         current_color = self.turn
@@ -529,7 +535,7 @@ class Board:
 
         visited_places = used_spaces
         viable_space_for_attack = {}
-        temp1 = self.get_pieces_that_can_move()
+        temp1 = self.get_pieces_that_have_free_space_around()
         temp2 = self.check_if_pieces_that_can_move_can_attack(temp1)
         if temp1 == temp2:
             temp2 = {current_pos: []}
@@ -617,7 +623,7 @@ class Board:
 # board1.pieces[41].color = 0
 # board1.display_board()
 # # # # zbiera liste wszystkich zetonow ktore moga sie poruszyc
-# t1 = board1.get_pieces_that_can_move()
+# t1 = board1.get_pieces_that_have_free_space_around()
 # print('\n')
 # t2 = board1.check_if_pieces_that_can_move_can_attack(t1)
 # board1.display_board()
@@ -643,7 +649,7 @@ class Board:
 # # 2 tura
 # print('\n')
 # board1.turn = 0
-# t3 = board1.get_pieces_that_can_move()
+# t3 = board1.get_pieces_that_have_free_space_around()
 # t4 = board1.check_if_pieces_that_can_move_can_attack(t3)
 #
 # # for i in t4:
@@ -674,18 +680,23 @@ while not end_game:
     print("TURN " + str(counter) + ' - ' + str(board1.turn) + '\n')
     board1.display_board()
     print('\n')
-    # if counter == 12:
-    #     print('xd')
-    t1 = board1.get_pieces_that_can_move()
+    t1 = board1.get_pieces_that_have_free_space_around()
     t2 = board1.check_if_pieces_that_can_move_can_attack(t1)
     board1.display_board()
     print('\n')
     # wybor zetonu z dostepnych
     available_pieces = []
+    print("ROW | COLUMN")
     for i in t2.keys():
         available_pieces.append(i)
         print(i.position)
-    choice = input('Choose 1, 2,...\n')
+    valid_choice = False
+    while not valid_choice:
+        choice = input('Choose 1, 2,...\n')
+        if int(choice) - 1 < 0 or int(choice) > len(available_pieces):
+            pass
+        else:
+            valid_choice = True
     piece = available_pieces[int(choice) - 1]
     w1, a1 = board1.get_possible_moves_for_piece(piece, t2)
     board1.display_board()
@@ -701,11 +712,16 @@ while not end_game:
     available_places = list(set(available_places))
     for i in available_places:
         print(i.position)
-    choice = input('Choose 1, 2,...\n')
+    valid_choice = False
+    while not valid_choice:
+        choice = input('Choose 1, 2,...\n')
+        if int(choice) - 1 < 0 or int(choice) > len(available_places):
+            pass
+        else:
+            valid_choice = True
     clicked_space = available_places[int(choice) - 1]
     did_attack = board1.move_piece(piece, clicked_space, w1, a1)
-    if counter == 3:
-        print('xd')
+
 
     used_spaces = [piece]
 
